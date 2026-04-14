@@ -30,12 +30,21 @@ label {
   margin-top: 15px;
 }
 
-input, select {
+input, select, textarea {
   width: 100%;
   padding: 8px;
   margin-top: 5px;
+  box-sizing: border-box;
 }
 
+textarea {
+  resize: none;
+  overflow: hidden;
+  min-height: 40px;
+  line-height: 1.5;
+  font-family: Arial, sans-serif;
+  transition: height 0.1s ease;
+}
 button {
   margin-top: 20px;
   padding: 10px 20px;
@@ -95,7 +104,7 @@ button {
     <div class="section" id="s1">
 
       <label>Nama Lengkap</label>
-      <input name="entry.1718822662" required>
+      <textarea name="entry.1718822662" class="auto-expand" required></textarea>
 
       <label>Level Jabatan yang Dituju</label>
       <select name="entry.807897600" required>
@@ -106,7 +115,7 @@ button {
       </select>
 
       <label>Unit Kerja/Perusahaan</label>
-      <input name="entry.461166113">
+      <textarea name="entry.461166113" class="auto-expand" required></textarea>
 
       <button type="button" class="next" onclick="goNext(1)">Next</button>
     </div>
@@ -179,16 +188,16 @@ button {
       </div>
 
       <label>Berdasarkan data dan informasi pada studi kasus, apa akar permasalahan utama yang dihadapi toyomi?</label>
-      <input name="entry.964043886" required>
+      <textarea name="entry.964043886" class="auto-expand" required></textarea>
 
       <label>Sebagai bagian dari jajaran eksekutif, keputusan strategis apa yang paling rasional untuk 5–10 tahun ke depan? Jelaskan dampak jangka panjang dari keputusan tersebut!</label>
-      <input name="entry.1432978201" required>
+      <textarea name="entry.1432978201" class="auto-expand" required></textarea>
 
       <label>Jika Toyomi memutuskan masuk ke segmen premium, bagaimana strategi yang sebaiknya dirancang dengan tetap mempertimbangkan kebutuhan konsumen premium sekaligus menjaga loyalitas konsumen lama?</label>
-      <input name="entry.92717384" required>
+      <textarea name="entry.92717384" class="auto-expand" required></textarea>
 
       <label>Susunlah tahapan langkah yang terstruktur dan realistis untuk mengatasi permasalahan yang dimiliki Toyomi!</label>
-      <input name="entry.68306996" required>
+      <textarea name="entry.68306996" class="auto-expand" required></textarea>
 
       <button type="button" class="back" onclick="back(3)">Back</button>
       <button type="submit" class="submit">Submit</button>
@@ -254,6 +263,13 @@ function loadSection() {
   timerDisplay.style.display = "block";
 }
 
+
+// ================= FIX HEIGHT AFTER LOAD =================
+function restoreTextareaHeight() {
+  document.querySelectorAll(".auto-expand").forEach(el => {
+    if (el.value) autoExpand(el);
+  });
+}
 
 function validateSection(sectionId) {
   const section = document.getElementById(sectionId);
@@ -384,13 +400,30 @@ document.getElementById("form").addEventListener("submit", function(e) {
 });
 
 // ================= AUTO SAVE =================
-document.querySelectorAll("input, select").forEach(el => {
+document.querySelectorAll("input, select, textarea").forEach(el => {
   el.addEventListener("input", saveAnswers);
+});
+
+// ================= AUTO EXPAND TEXTAREA =================
+function autoExpand(el) {
+  el.style.height = "auto";
+  el.style.height = el.scrollHeight + "px";
+}
+
+// event untuk semua textarea
+document.querySelectorAll("textarea.auto-expand").forEach(el => {
+  el.addEventListener("input", function() {
+    autoExpand(this);
+  });
+
+  // trigger awal (biar tidak gepeng saat reload)
+  autoExpand(el);
 });
 
 // ================= INIT =================
 window.onload = function() {
   loadAnswers();
+  restoreTextareaHeight();
 
   if (sessionStorage.getItem("startTime")) {
     loadSection();
