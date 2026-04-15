@@ -88,7 +88,7 @@ button {
   <!-- WELCOME -->
   <div id="welcome" class="section active">
     <h2>Selamat Datang</h2>
-    <p>Silakan klik tombol di bawah untuk memulai asesmen.</p>
+    <p>Silakan klik tombol start di bawah untuk memulai asesmen. Asesmen akan berjalan selama 30 menit di mulai setelah anda mengklik tombol start. Jika waktu habis sebelum submit, maka jawaban anda akan tersubmit otomatis apa adanya.</p>
     <button class="start" onclick="startAssessment()">Start</button>
   </div>
 
@@ -263,6 +263,26 @@ function loadSection() {
   timerDisplay.style.display = "block";
 }
 
+function getParticipantID() {
+  let existing = sessionStorage.getItem("participant_id");
+
+  if (existing) return existing;
+
+  const nama = document.querySelector('[name="entry.1718822662"]').value || "anon";
+  const jabatan = document.querySelector('[name="entry.807897600"]').value || "unknown";
+
+  let base = (nama + "_" + jabatan)
+    .toLowerCase()
+    .replace(/\s+/g, "_")
+    .replace(/[^a-z0-9_]/g, "");
+
+  let id = base + "_" + Date.now();
+
+  sessionStorage.setItem("participant_id", id);
+
+  return id;
+}
+
 
 // ================= FIX HEIGHT AFTER LOAD =================
 function restoreTextareaHeight() {
@@ -370,6 +390,25 @@ function updateTimer() {
 
 setInterval(updateTimer, 1000);
 
+
+let autoSaveTimer = null;
+
+function autoSaveToSheet() {
+
+  const form = document.getElementById("form");
+  const formData = new FormData(form);
+
+  const pid = getParticipantID();
+  formData.append("participant_id", pid);
+
+  fetch("https://script.google.com/macros/s/AKfycbx42a3BImh7Q6b5VlaJIX1g-LjBAN89X1sabuth6KBYa126i7DWWkoPUlefmxglMTWb/exec", {
+    method: "POST",
+    mode: "no-cors",
+    body: formData
+  });
+
+}
+
 // ================= SUBMIT =================
 function submitForm() {
   submitted = true;
@@ -377,7 +416,11 @@ function submitForm() {
   const form = document.getElementById("form");
   const formData = new FormData(form);
 
-  fetch("https://docs.google.com/forms/d/e/1FAIpQLSdB9Bm8dwCyjqt75UUChxiOJxShooS4Mog8umRB6CqKUKuy-w/formResponse", {
+// 🔥 tambahkan participant_id
+  const pid = getParticipantID();
+  formData.append("participant_id", pid);
+  formData.append("status", "SUBMITTED");
+  fetch("https://script.google.com/macros/s/AKfycbx42a3BImh7Q6b5VlaJIX1g-LjBAN89X1sabuth6KBYa126i7DWWkoPUlefmxglMTWb/exec", {
     method: "POST",
     mode: "no-cors",
     body: formData
@@ -394,6 +437,8 @@ function submitForm() {
   });
 }
 
+
+
 document.getElementById("form").addEventListener("submit", function(e) {
   e.preventDefault();
   submitForm();
@@ -401,9 +446,16 @@ document.getElementById("form").addEventListener("submit", function(e) {
 
 // ================= AUTO SAVE =================
 document.querySelectorAll("input, select, textarea").forEach(el => {
-  el.addEventListener("input", saveAnswers);
-});
+  el.addEventListener("input", () => {
 
+    saveAnswers();
+
+    // debounce (biar ga spam request)
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(autoSaveToSheet, 2000);
+
+  });
+});
 // ================= AUTO EXPAND TEXTAREA =================
 function autoExpand(el) {
   el.style.height = "auto";
@@ -423,13 +475,15 @@ document.querySelectorAll("textarea.auto-expand").forEach(el => {
 // ================= INIT =================
 window.onload = function() {
   loadAnswers();
-  restoreTextareaHeight();
+
+  setTimeout(() => {
+    restoreTextareaHeight();
+  }, 50); // delay kecil biar layout settle
 
   if (sessionStorage.getItem("startTime")) {
     loadSection();
   }
 };
-
 </script>
 
 </body>
